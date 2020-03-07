@@ -29,17 +29,15 @@ namespace CodeLuau
         {
             int? speakerId = null;
 
-
             if (!string.IsNullOrWhiteSpace(FirstName))
             {
                 if (!string.IsNullOrWhiteSpace(LastName))
                 {
                     if (!string.IsNullOrWhiteSpace(Email))
                     {
-                        var good = false;
                         var emps = new List<string>() { "Pluralsight", "Microsoft", "Google" };
 
-                        good = Exp > 10 || HasBlog || Certifications.Count() > 3 || emps.Contains(Employer);
+                        bool good = Exp > 10 || HasBlog || Certifications.Count() > 3 || emps.Contains(Employer);
 
                         if (!good)
                         {
@@ -60,7 +58,6 @@ namespace CodeLuau
                             {
                                 foreach (var session in Sessions)
                                 {
-
                                     var ot = new List<string>() { "Cobol", "Punch Cards", "Commodore", "VBScript" };
 
                                     foreach (var tech in ot)
