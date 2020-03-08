@@ -29,38 +29,39 @@ namespace CodeLuau
         {
             int? speakerId = null;
 
+            var error = ValidateRegistration();
+            if (error != null) return new RegisterResponse(error);
+
+            // We assume  calls the db to find pricing hence if else deleted
+            try
+            {
+                speakerId = repository.SaveSpeaker(this);
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Db save failed");
+            }
+
+            return new RegisterResponse((int)speakerId);
+        }
+        private RegisterError? ValidateRegistration()
+        {
+
             var error = this.ValidateData();
             if (error != null)
             {
-                return new RegisterResponse(error);
+                return error;
             }
 
             bool speakerAppearsQualified = AppearsExceptional() || !HasRedFlags();
 
-            if (!speakerAppearsQualified) return new RegisterResponse(RegisterError.SpeakerDoesNotMeetStandards);
+            if (!speakerAppearsQualified) return RegisterError.SpeakerDoesNotMeetStandards;
 
             bool approved = ClassifiesAsOldTechnology();
 
-            if (approved)
-            {
+            if (!approved) return RegisterError.NoSessionsApproved;
 
-                // We assume  calls the db to find pricing hence if else deleted
-
-                try
-                {
-                    speakerId = repository.SaveSpeaker(this);
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Db save failed");
-                }
-            }
-            else
-            {
-                return new RegisterResponse(RegisterError.NoSessionsApproved);
-            }
-
-            return new RegisterResponse((int)speakerId);
+            return null;
         }
 
         private bool ClassifiesAsOldTechnology()
@@ -70,7 +71,7 @@ namespace CodeLuau
                 session.Approved = !SessionIsOldTechnology(session);
             }
 
-            return Sessions.Any(s=>s.Approved);
+            return Sessions.Any(s => s.Approved);
         }
 
         private static bool SessionIsOldTechnology(Session session)
@@ -91,7 +92,7 @@ namespace CodeLuau
             string emailDomain = Email.Split('@').Last();
             return ancientDomains.Contains(emailDomain) || (Browser.Name == WebBrowser.BrowserName.InternetExplorer && Browser.MajorVersion < 9);
         }
-                
+
         private bool AppearsExceptional()
         {
             if (YearsExperience > 10) return true;
