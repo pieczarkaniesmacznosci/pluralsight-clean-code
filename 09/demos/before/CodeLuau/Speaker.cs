@@ -35,81 +35,70 @@ namespace CodeLuau
                 return new RegisterResponse(error);
             }
 
-            bool speakerAppearsQualified = AppearsExceptional() && !HasRedFlags();
+            bool speakerAppearsQualified = AppearsExceptional() || !HasRedFlags();
 
-            if (speakerAppearsQualified)
+            if (!speakerAppearsQualified) return new RegisterResponse(RegisterError.SpeakerDoesNotMeetStandards);
+
+            var approved = false;
+
+            foreach (var session in Sessions)
             {
-                var approved = false;
-                if (Sessions.Count() != 0)
-                {
-                    foreach (var session in Sessions)
-                    {
-                        var ot = new List<string>() { "Cobol", "Punch Cards", "Commodore", "VBScript" };
+                var ot = new List<string>() { "Cobol", "Punch Cards", "Commodore", "VBScript" };
 
-                        foreach (var tech in ot)
-                        {
-                            if (session.Title.Contains(tech) || session.Description.Contains(tech))
-                            {
-                                session.Approved = false;
-                                break;
-                            }
-                            else
-                            {
-                                session.Approved = true;
-                                approved = true;
-                            }
-                        }
-                    }
-                }
-                else
+                foreach (var tech in ot)
                 {
-                    return new RegisterResponse(RegisterError.NoSessionsProvided);
-                }
-
-                if (approved)
-                {
-                    //if we got this far, the speaker is approved
-                    //let's go ahead and register him/her now.
-                    //First, let's calculate the registration fee. 
-                    //More experienced speakers pay a lower fee.
-                    if (YearsExperience <= 1)
+                    if (session.Title.Contains(tech) || session.Description.Contains(tech))
                     {
-                        RegistrationFee = 500;
-                    }
-                    else if (YearsExperience >= 2 && YearsExperience <= 3)
-                    {
-                        RegistrationFee = 250;
-                    }
-                    else if (YearsExperience >= 4 && YearsExperience <= 5)
-                    {
-                        RegistrationFee = 100;
-                    }
-                    else if (YearsExperience >= 6 && YearsExperience <= 9)
-                    {
-                        RegistrationFee = 50;
+                        session.Approved = false;
+                        break;
                     }
                     else
                     {
-                        RegistrationFee = 0;
+                        session.Approved = true;
+                        approved = true;
                     }
+                }
+            }
 
-                    try
-                    {
-                        speakerId = repository.SaveSpeaker(this);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new Exception("Db save failed");
-                    }
+            if (approved)
+            {
+                //if we got this far, the speaker is approved
+                //let's go ahead and register him/her now.
+                //First, let's calculate the registration fee. 
+                //More experienced speakers pay a lower fee.
+                if (YearsExperience <= 1)
+                {
+                    RegistrationFee = 500;
+                }
+                else if (YearsExperience >= 2 && YearsExperience <= 3)
+                {
+                    RegistrationFee = 250;
+                }
+                else if (YearsExperience >= 4 && YearsExperience <= 5)
+                {
+                    RegistrationFee = 100;
+                }
+                else if (YearsExperience >= 6 && YearsExperience <= 9)
+                {
+                    RegistrationFee = 50;
                 }
                 else
                 {
-                    return new RegisterResponse(RegisterError.NoSessionsApproved);
+                    RegistrationFee = 0;
+                }
+
+                try
+                {
+                    speakerId = repository.SaveSpeaker(this);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Db save failed");
                 }
             }
             else
             {
-                return new RegisterResponse(RegisterError.SpeakerDoesNotMeetStandards);
+                return new RegisterResponse(RegisterError.NoSessionsApproved);
             }
 
             return new RegisterResponse((int)speakerId);
@@ -121,13 +110,9 @@ namespace CodeLuau
 
             string emailDomain = Email.Split('@').Last();
 
-            if (!ancientDomains.Contains(emailDomain) && (!(Browser.Name == WebBrowser.BrowserName.InternetExplorer && Browser.MajorVersion < 9)))
-            {
-                return true;
-            }
-            return false;
+            return ancientDomains.Contains(emailDomain) || (Browser.Name == WebBrowser.BrowserName.InternetExplorer && Browser.MajorVersion < 9);
         }
-
+                
         private bool AppearsExceptional()
         {
             if (YearsExperience > 10) return true;
@@ -141,22 +126,11 @@ namespace CodeLuau
 
         private RegisterError? ValidateData()
         {
-            if (string.IsNullOrWhiteSpace(FirstName))
-            {
-                return RegisterError.FirstNameRequired;
-            }
-            else if (string.IsNullOrWhiteSpace(LastName))
-            {
-                return RegisterError.LastNameRequired;
-            }
-            else if (string.IsNullOrWhiteSpace(Email))
-            {
-                return RegisterError.EmailRequired;
-            }
-            else
-            {
-                return null;
-            }
+            if (string.IsNullOrWhiteSpace(FirstName)) return RegisterError.FirstNameRequired;
+            if (string.IsNullOrWhiteSpace(LastName)) return RegisterError.LastNameRequired;
+            if (string.IsNullOrWhiteSpace(Email)) return RegisterError.EmailRequired;
+            if (!Sessions.Any()) return RegisterError.NoSessionsProvided;
+            return null;
         }
     }
 }
