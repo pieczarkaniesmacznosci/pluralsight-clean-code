@@ -35,19 +35,7 @@ namespace CodeLuau
                 return new RegisterResponse(error);
             }
 
-            bool speakerAppearsQualified = AppearsExceptional();
-
-            if (!speakerAppearsQualified)
-            {
-                var domains = new List<string>() { "aol.com", "prodigy.com", "compuserve.com" };
-
-                string emailDomain = Email.Split('@').Last();
-
-                if (!domains.Contains(emailDomain) && (!(Browser.Name == WebBrowser.BrowserName.InternetExplorer && Browser.MajorVersion < 9)))
-                {
-                    speakerAppearsQualified = true;
-                }
-            }
+            bool speakerAppearsQualified = AppearsExceptional() && !HasRedFlags();
 
             if (speakerAppearsQualified)
             {
@@ -125,6 +113,19 @@ namespace CodeLuau
             }
 
             return new RegisterResponse((int)speakerId);
+        }
+
+        private bool HasRedFlags()
+        {
+            var ancientDomains = new List<string>() { "aol.com", "prodigy.com", "compuserve.com" };
+
+            string emailDomain = Email.Split('@').Last();
+
+            if (!ancientDomains.Contains(emailDomain) && (!(Browser.Name == WebBrowser.BrowserName.InternetExplorer && Browser.MajorVersion < 9)))
+            {
+                return true;
+            }
+            return false;
         }
 
         private bool AppearsExceptional()
