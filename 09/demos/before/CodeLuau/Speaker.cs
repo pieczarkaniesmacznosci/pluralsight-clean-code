@@ -29,119 +29,124 @@ namespace CodeLuau
         {
             int? speakerId = null;
 
-            if (!string.IsNullOrWhiteSpace(FirstName))
+            var error = this.ValidateData();
+            if (error != null)
             {
-                if (!string.IsNullOrWhiteSpace(LastName))
+                return new RegisterResponse(error);
+            }
+
+            var emps = new List<string>() { "Pluralsight", "Microsoft", "Google" };
+
+            bool good = Exp > 10 || HasBlog || Certifications.Count() > 3 || emps.Contains(Employer);
+
+            if (!good)
+            {
+                var domains = new List<string>() { "aol.com", "prodigy.com", "compuserve.com" };
+                //need to get just the domain from the email
+                string emailDomain = Email.Split('@').Last();
+
+                if (!domains.Contains(emailDomain) && (!(Browser.Name == WebBrowser.BrowserName.InternetExplorer && Browser.MajorVersion < 9)))
                 {
-                    if (!string.IsNullOrWhiteSpace(Email))
+                    good = true;
+                }
+            }
+
+            if (good)
+            {
+                var appr = false;
+                if (Sessions.Count() != 0)
+                {
+                    foreach (var session in Sessions)
                     {
-                        var emps = new List<string>() { "Pluralsight", "Microsoft", "Google" };
+                        var ot = new List<string>() { "Cobol", "Punch Cards", "Commodore", "VBScript" };
 
-                        bool good = Exp > 10 || HasBlog || Certifications.Count() > 3 || emps.Contains(Employer);
-
-                        if (!good)
+                        foreach (var tech in ot)
                         {
-                            var domains = new List<string>() { "aol.com", "prodigy.com", "compuserve.com" };
-                            //need to get just the domain from the email
-                            string emailDomain = Email.Split('@').Last();
-
-                            if (!domains.Contains(emailDomain) && (!(Browser.Name == WebBrowser.BrowserName.InternetExplorer && Browser.MajorVersion < 9)))
+                            if (session.Title.Contains(tech) || session.Description.Contains(tech))
                             {
-                                good = true;
-                            }
-                        }
-
-                        if (good)
-                        {
-                            var appr = false;
-                            if (Sessions.Count() != 0)
-                            {
-                                foreach (var session in Sessions)
-                                {
-                                    var ot = new List<string>() { "Cobol", "Punch Cards", "Commodore", "VBScript" };
-
-                                    foreach (var tech in ot)
-                                    {
-                                        if (session.Title.Contains(tech) || session.Description.Contains(tech))
-                                        {
-                                            session.Approved = false;
-                                            break;
-                                        }
-                                        else
-                                        {
-                                            session.Approved = true;
-                                            appr = true;
-                                        }
-                                    }
-                                }
+                                session.Approved = false;
+                                break;
                             }
                             else
                             {
-                                return new RegisterResponse(RegisterError.NoSessionsProvided);
-                            }
-
-                            if (appr)
-                            {
-                                //if we got this far, the speaker is approved
-                                //let's go ahead and register him/her now.
-                                //First, let's calculate the registration fee. 
-                                //More experienced speakers pay a lower fee.
-                                if (Exp <= 1)
-                                {
-                                    RegistrationFee = 500;
-                                }
-                                else if (Exp >= 2 && Exp <= 3)
-                                {
-                                    RegistrationFee = 250;
-                                }
-                                else if (Exp >= 4 && Exp <= 5)
-                                {
-                                    RegistrationFee = 100;
-                                }
-                                else if (Exp >= 6 && Exp <= 9)
-                                {
-                                    RegistrationFee = 50;
-                                }
-                                else
-                                {
-                                    RegistrationFee = 0;
-                                }
-
-                                try
-                                {
-                                    speakerId = repository.SaveSpeaker(this);
-                                }
-                                catch (Exception e)
-                                {
-                                    throw new Exception("Db save failed");
-                                }
-                            }
-                            else
-                            {
-                                return new RegisterResponse(RegisterError.NoSessionsApproved);
+                                session.Approved = true;
+                                appr = true;
                             }
                         }
-                        else
-                        {
-                            return new RegisterResponse(RegisterError.SpeakerDoesNotMeetStandards);
-                        }
-                    }
-                    else
-                    {
-                        return new RegisterResponse(RegisterError.EmailRequired);
                     }
                 }
                 else
                 {
-                    return new RegisterResponse(RegisterError.LastNameRequired);
+                    return new RegisterResponse(RegisterError.NoSessionsProvided);
+                }
+
+                if (appr)
+                {
+                    //if we got this far, the speaker is approved
+                    //let's go ahead and register him/her now.
+                    //First, let's calculate the registration fee. 
+                    //More experienced speakers pay a lower fee.
+                    if (Exp <= 1)
+                    {
+                        RegistrationFee = 500;
+                    }
+                    else if (Exp >= 2 && Exp <= 3)
+                    {
+                        RegistrationFee = 250;
+                    }
+                    else if (Exp >= 4 && Exp <= 5)
+                    {
+                        RegistrationFee = 100;
+                    }
+                    else if (Exp >= 6 && Exp <= 9)
+                    {
+                        RegistrationFee = 50;
+                    }
+                    else
+                    {
+                        RegistrationFee = 0;
+                    }
+
+                    try
+                    {
+                        speakerId = repository.SaveSpeaker(this);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new Exception("Db save failed");
+                    }
+                }
+                else
+                {
+                    return new RegisterResponse(RegisterError.NoSessionsApproved);
                 }
             }
             else
             {
-                return new RegisterResponse(RegisterError.FirstNameRequired);
+                return new RegisterResponse(RegisterError.SpeakerDoesNotMeetStandards);
             }
 
             return new RegisterResponse((int)speakerId);
+        }
+
+        private RegisterError? ValidateData()
+        {
+            if (string.IsNullOrWhiteSpace(FirstName))
+            {
+                return RegisterError.FirstNameRequired;
+            }
+            else if (string.IsNullOrWhiteSpace(LastName))
+            {
+                return RegisterError.LastNameRequired;
+            }
+            else if (string.IsNullOrWhiteSpace(Email))
+            {
+                return RegisterError.EmailRequired;
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }
