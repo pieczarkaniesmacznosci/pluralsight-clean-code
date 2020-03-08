@@ -35,9 +35,7 @@ namespace CodeLuau
                 return new RegisterResponse(error);
             }
 
-            var emps = new List<string>() { "Pluralsight", "Microsoft", "Google" };
-
-            bool speakerAppearsQualified = YearsExperience > 10 || HasBlog || Certifications.Count() > 3 || emps.Contains(Employer);
+            bool speakerAppearsQualified = AppearsExceptional();
 
             if (!speakerAppearsQualified)
             {
@@ -127,6 +125,17 @@ namespace CodeLuau
             }
 
             return new RegisterResponse((int)speakerId);
+        }
+
+        private bool AppearsExceptional()
+        {
+            if (YearsExperience > 10) return true;
+            if (HasBlog) return true;
+            if (Certifications.Count() > 3) return true;
+
+            var emps = new List<string>() { "Pluralsight", "Microsoft", "Google" };
+            if (emps.Contains(Employer)) return true;
+            return false;
         }
 
         private RegisterError? ValidateData()
