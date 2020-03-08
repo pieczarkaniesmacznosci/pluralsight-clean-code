@@ -39,26 +39,7 @@ namespace CodeLuau
 
             if (!speakerAppearsQualified) return new RegisterResponse(RegisterError.SpeakerDoesNotMeetStandards);
 
-            var approved = false;
-
-            foreach (var session in Sessions)
-            {
-                var ot = new List<string>() { "Cobol", "Punch Cards", "Commodore", "VBScript" };
-
-                foreach (var tech in ot)
-                {
-                    if (session.Title.Contains(tech) || session.Description.Contains(tech))
-                    {
-                        session.Approved = false;
-                        break;
-                    }
-                    else
-                    {
-                        session.Approved = true;
-                        approved = true;
-                    }
-                }
-            }
+            bool approved = ClassifiesAsOldTechnology();
 
             if (approved)
             {
@@ -104,12 +85,32 @@ namespace CodeLuau
             return new RegisterResponse((int)speakerId);
         }
 
+        private bool ClassifiesAsOldTechnology()
+        {
+            foreach (var session in Sessions)
+            {
+                session.Approved = !SessionIsOldTechnology(session);
+            }
+
+            return Sessions.Any(s=>s.Approved);
+        }
+
+        private static bool SessionIsOldTechnology(Session session)
+        {
+            var oldTechnology = new List<string>() { "Cobol", "Punch Cards", "Commodore", "VBScript" };
+
+            foreach (var tech in oldTechnology)
+            {
+                if (session.Title.Contains(tech) || session.Description.Contains(tech)) return true;
+            }
+
+            return false;
+        }
+
         private bool HasRedFlags()
         {
             var ancientDomains = new List<string>() { "aol.com", "prodigy.com", "compuserve.com" };
-
             string emailDomain = Email.Split('@').Last();
-
             return ancientDomains.Contains(emailDomain) || (Browser.Name == WebBrowser.BrowserName.InternetExplorer && Browser.MajorVersion < 9);
         }
                 
